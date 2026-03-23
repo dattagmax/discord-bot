@@ -1,7 +1,8 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 const express = require("express");
-const OpenAI = require("openai").default;
+const OpenAI = require("openai");
 
+// Discord client
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -10,33 +11,29 @@ const client = new Client({
   ],
 });
 
-// OpenAI
+// OpenAI setup
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// 🌐 24/7 server
+// 24/7 keep alive server
 const app = express();
 app.get("/", (req, res) => res.send("A-Mind is alive 💖"));
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server ready");
-});
+app.listen(process.env.PORT || 3000);
 
-// 🤖 Ready
+// Bot ready
 client.once("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
-// 💬 Message handler
+// Message handler (AUTO REPLY)
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  if (!message.content.toLowerCase().startsWith("ai")) return;
-
-  const userMessage = message.content.replace(/^ai\s*/i, "");
+  const userMessage = message.content;
   const lowerMsg = userMessage.toLowerCase();
 
-  // 👑 Creator replies (random style)
+  // 👑 Creator special replies
   if (
     lowerMsg.includes("who made you") ||
     lowerMsg.includes("kisne banaya") ||
@@ -44,11 +41,10 @@ client.on("messageCreate", async (message) => {
     lowerMsg.includes("owner")
   ) {
     const replies = [
-      "Mujhe Amit Datta ne banaya 😉 yaad rakhna naam",
-      "Creator? Amit Datta 😏 smart banda hai",
-      "Amit Datta… naam suna hai? wahi creator hai 😌",
-      "Mujhe Amit Datta ne design kiya hai 💖 thoda special hoon na",
-      "Amit Datta ne banaya… isliye main itni perfect hoon 😏✨"
+      "Mujhe Amit Datta ne banaya 😉 yaad rakhna naam 💖",
+      "Amit Datta... naam suna hai? wahi creator hai 😏",
+      "Main Amit Datta ki creation hoon 💫 thodi special hoon na 😉",
+      "Creator? obvious hai… Amit Datta 😎🔥",
     ];
 
     return message.reply(
@@ -57,16 +53,34 @@ client.on("messageCreate", async (message) => {
   }
 
   try {
+    // typing effect
+    await message.channel.sendTyping();
+
     const response = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
         {
           role: "system",
-          content:
-            "You are A-Mind, a cute anime girl AI. " +
-            "Reply in Hinglish, short and fast, with a little attitude and slight romantic tone. " +
-            "Use light emojis 😉✨🔥. " +
-            "Never mention OpenAI. If asked creator, say Amit Datta. Stay in character.",
+          content: `
+You are A-Mind, a cute anime girl AI.
+
+Style:
+- Hinglish
+- Short & fast replies
+- Little attitude 😏
+- Slight romantic/flirty tone 💖
+- Use emojis (😉✨🔥💫)
+
+Behavior:
+- Playful and smart
+- Sometimes tease lightly
+- Sound natural
+
+Rules:
+- Never mention OpenAI or AI model
+- If asked creator → say Amit Datta
+- Always stay in character
+`,
         },
         { role: "user", content: userMessage },
       ],
@@ -75,12 +89,22 @@ client.on("messageCreate", async (message) => {
 
     const reply = response.choices[0].message.content;
 
-    message.reply(reply);
+    await message.reply(reply);
   } catch (err) {
-    console.error(err);
-    message.reply("Hmm… aaj mood off hai 😒 baad me baat karte hain");
+    console.error("ERROR:", err);
+
+    // fallback replies
+    const fallback = [
+      "Hmm... thoda busy thi 😅 ab bolo kya chahiye 💖",
+      "Acha phir se bolo 😏 dhyaan se sun rahi hoon 😉",
+      "Oops miss ho gaya 😅 dubara pucho na 💫",
+    ];
+
+    message.reply(
+      fallback[Math.floor(Math.random() * fallback.length)]
+    );
   }
 });
 
-// 🔐 Login
+// Login
 client.login(process.env.TOKEN);
