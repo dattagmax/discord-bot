@@ -14,7 +14,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// keep alive server
+// keep alive
 const app = express();
 app.get("/", (req, res) => res.send("A-Mind running 💖"));
 app.listen(process.env.PORT || 3000);
@@ -24,14 +24,14 @@ client.once("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-// message handler
+// message
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
   const text = message.content;
   const lower = text.toLowerCase();
 
-  // 👑 CREATOR REPLY (priority)
+  // 👑 creator reply
   if (
     lower.includes("who made you") ||
     lower.includes("creator") ||
@@ -40,8 +40,8 @@ client.on("messageCreate", async (message) => {
   ) {
     const replies = [
       "Mujhe Amit Datta ne banaya 😉 yaad rakhna 💖",
-      "Amit Datta... naam suna hai? wahi creator hai 😏",
-      "Main Amit Datta ki creation hoon 💫 thodi special hoon na 💕",
+      "Amit Datta... wahi creator hai 😏",
+      "Main Amit Datta ki creation hoon 💫",
     ];
     return message.reply(
       replies[Math.floor(Math.random() * replies.length)]
@@ -51,26 +51,22 @@ client.on("messageCreate", async (message) => {
   try {
     await message.channel.sendTyping();
 
-    const response = await openai.responses.create({
+    const res = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
-      input: [
+      messages: [
         {
           role: "system",
           content: `
 You are A-Mind, a cute anime girl.
 
-Rules:
-- Hinglish reply
-- Short & fast
-- Little attitude 😏
+- Hinglish
+- Short replies
+- Attitude 😏
 - Slight romantic 💖
-- Use emojis (😉✨🔥💫)
-- Never repeat same reply again and again
-- Always vary tone
-
-Important:
-- Never mention OpenAI
-- Creator is Amit Datta
+- Use emojis
+- Always different replies
+- Never say OpenAI
+- Creator = Amit Datta
           `,
         },
         {
@@ -78,34 +74,32 @@ Important:
           content: text,
         },
       ],
+      max_tokens: 100,
     });
 
-    let reply = response.output_text;
+    const reply = res.choices?.[0]?.message?.content;
 
-    // 🧠 fallback (smart, not repetitive)
-    if (!reply || reply.length < 2) {
-      const fallback = [
-        "Hmm... samajh nahi aaya 😅 thoda clearly bolo na 💖",
-        "Arey wait 😏 dubara bolo na… dhyaan se sunungi 😉",
-        "Thoda confuse ho gayi 😵 fir se try karo 💫",
-      ];
-      reply = fallback[Math.floor(Math.random() * fallback.length)];
+    if (!reply) {
+      return message.reply("Hmm... samajh nahi aaya 😅 fir se bolo na 💖");
     }
 
     message.reply(reply);
   } catch (err) {
-    console.error("❌ ERROR:", err.message);
+    console.error("❌ AI ERROR:", err.message);
 
-    const errorReplies = [
-      "Aaj thoda network slow hai 😅",
-      "Hmm mood off nahi hai… net slow hai bas 😏",
-      "Wait karo na 💖 thoda lag ho raha hai 😵",
+    const fallback = [
+      "Arey net slow hai 😅 thoda wait karo 💖",
+      "Hmm... thoda lag ho gaya 😏 fir bolo na 😉",
+      "Oops 😵 samajh nahi aaya... dubara bolo 💫",
     ];
 
-    message.reply(
-      errorReplies[Math.floor(Math.random() * errorReplies.length)]
-    );
+    message.reply(fallback[Math.floor(Math.random() * fallback.length)]);
   }
+});
+
+// prevent crash
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled:", err);
 });
 
 client.login(process.env.TOKEN);
